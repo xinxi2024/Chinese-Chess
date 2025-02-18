@@ -1,0 +1,284 @@
+.chess-board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.board {
+  border: 2px solid var(--border-color);
+  padding: 10px;
+  margin-top: 20px;
+  background-color: var(--board-color);
+  position: relative;
+}
+
+.board::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(var(--square-border-color) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--square-border-color) 1px, transparent 1px);
+  background-size: calc(100% / 8) calc(100% / 9);
+  pointer-events: none;
+}
+
+.board-row {
+  display: flex;
+}
+
+.square {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.square.selected {
+  background-color: rgba(255, 255, 0, 0.3);
+}
+
+.square.valid-move::before {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: rgba(0, 255, 0, 0.5);
+  border-radius: 50%;
+}
+
+.piece {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  position: relative;
+  z-index: 1;
+}
+
+.piece:hover {
+  transform: scale(1.1);
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.controls select,
+.controls button {
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  border: 2px solid #4CAF50;
+  border-radius: 5px;
+  background-color: white;
+  color: #4CAF50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.controls select:hover,
+.controls button:hover {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.game-info {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.game-info p {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.game-info p.current-turn {
+  background-color: rgba(76, 175, 80, 0.2);
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+.game-info p.red-turn {
+  color: #ff4d4d;
+}
+
+.game-info p.black-turn {
+  color: #333;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
+
+/* 自定义残局模式的样式 */
+.custom-mode {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.preset-layouts {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.preset-layout {
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  border: 2px solid #4CAF50;
+  border-radius: 5px;
+  background-color: white;
+  color: #4CAF50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.preset-layout:hover {
+  background-color: #4CAF50;
+  color: white;
+}
+
+/* 翻棋模式的样式 */
+.piece.unflipped {
+  background-color: #8b4513;
+  color: transparent;
+  border: 2px solid #5c2d0c;
+}
+
+.blind-phase-alert {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid #ffeeba;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  width: 100%;
+}
+
+.check-alert {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(220, 53, 69, 0.9);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 5px;
+  font-size: 1.5rem;
+  animation: fadeInOut 2s ease-in-out;
+  z-index: 1000;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  25% { transform: translate(-50%, -50%) scale(1); }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.piece.red {
+  background-color: var(--red-piece-color, #ff4d4d);
+  color: var(--text-color, white);
+  border: 2px solid var(--red-piece-border, #cc0000);
+}
+
+.piece.black {
+  background-color: var(--black-piece-color, #333);
+  color: var(--text-color, white);
+  border: 2px solid var(--black-piece-border, #000);
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+.undo-button {
+  background-color: #f0ad4e;
+  border-color: #eea236;
+  color: white;
+}
+
+.undo-button:disabled {
+  background-color: #ccc;
+  border-color: #bbb;
+  cursor: not-allowed;
+}
+
+.undo-button:hover:not(:disabled) {
+  background-color: #ec971f;
+  border-color: #d58512;
+}
+
+.piece.in-check {
+  animation: check-pulse 1s infinite;
+  box-shadow: 0 0 10px #ff0000;
+}
+
+@keyframes check-pulse {
+  0% {
+    box-shadow: 0 0 5px #ff0000;
+  }
+  50% {
+    box-shadow: 0 0 20px #ff0000;
+  }
+  100% {
+    box-shadow: 0 0 5px #ff0000;
+  }
+}
+
+/* 当被将军时，播放音效 */
+.piece.in-check:not(.was-in-check) {
+  animation: check-sound 0.1s;
+}
+
+@keyframes check-sound {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1);
+  }
+}
