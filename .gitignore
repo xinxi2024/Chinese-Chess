@@ -49,3 +49,7 @@ Thumbs.db
 
 # 其他
 *.local
+
+# Netlify
+.netlify
+netlify.log

@@ -187,9 +187,20 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
         moves4.forEach(([r, c]) => {
           if (r >= 0 && r < 10 && c >= 0 && c < 9) {
             // 检查蹩马腿
-            const legRow = Math.floor(row + (r - row) / 2);
-            const legCol = Math.floor(col + (c - col) / 2);
-            if (legRow >= 0 && legRow < 10 && legCol >= 0 && legCol < 9 && !currentBoard[legRow][legCol]) {
+            let legRow = row;
+            let legCol = col;
+            
+            // 根据目标位置确定马腿位置
+            if (Math.abs(r - row) === 2) {
+              legRow = row + Math.sign(r - row);
+              legCol = col;
+            } else {
+              legRow = row;
+              legCol = col + Math.sign(c - col);
+            }
+            
+            // 只有当马腿位置没有棋子时，才能移动
+            if (!currentBoard[legRow][legCol]) {
               if (!currentBoard[r][c] || currentBoard[r][c].side !== side) {
                 moves.push([r, c]);
               }
@@ -443,6 +454,23 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
             if (isCheck(simulatedBoard, 'red')) {
               score += 500;
             }
+
+            // 保护自己的重要棋子
+            if (piece.type === 'jiang') {
+              score -= 1000; // 降低将帅自己移动的倾向
+            }
+
+            // 增加战术考虑
+            if (difficulty === 'hard') {
+              // 控制中心
+              if (toRow >= 3 && toRow <= 6 && toCol >= 3 && toCol <= 5) {
+                score += 100;
+              }
+              // 保护重要棋子
+              if (isProtectingImportantPiece(toRow, toCol, simulatedBoard)) {
+                score += 200;
+              }
+            }
             
             allPossibleMoves.push({
               from: { row: i, col: j },
@@ -466,45 +494,53 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
       return;
     }
 
-    // 如果有可能的移动
-    if (possibleMoves.length > 0) {
-      let selectedMove;
-      
-      // 根据难度选择移动
-      switch (difficulty) {
-        case 'hard':
-          // 选择分数最高的移动
-          selectedMove = possibleMoves.reduce((best, current) => 
-            current.score > best.score ? current : best
-          );
-          break;
-        case 'medium':
-          // 从前 30% 的最佳移动中随机选择
-          possibleMoves.sort((a, b) => b.score - a.score);
-          const mediumMoves = possibleMoves.slice(0, Math.ceil(possibleMoves.length * 0.3));
-          selectedMove = mediumMoves[Math.floor(Math.random() * mediumMoves.length)];
-          break;
-        default: // easy
-          // 随机选择，但给解除将军的移动更高权重
-          if (isBlackInCheck) {
-            selectedMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-          } else {
-            selectedMove = allPossibleMoves[Math.floor(Math.random() * allPossibleMoves.length)];
-          }
-      }
+    // 确保有可能的移动
+    if (possibleMoves.length === 0) {
+      possibleMoves = allPossibleMoves; // 如果没有最优移动，使用所有可能的移动
+    }
 
-      // 执行选择的移动
+    // 根据难度选择移动
+    let selectedMove;
+    switch (difficulty) {
+      case 'hard':
+        // 选择分数最高的移动
+        selectedMove = possibleMoves.reduce((best, current) => 
+          current.score > best.score ? current : best
+        , possibleMoves[0]);
+        break;
+      case 'medium':
+        // 从前 50% 的最佳移动中随机选择
+        possibleMoves.sort((a, b) => b.score - a.score);
+        const mediumMoves = possibleMoves.slice(0, Math.max(1, Math.ceil(possibleMoves.length * 0.5)));
+        selectedMove = mediumMoves[Math.floor(Math.random() * mediumMoves.length)];
+        break;
+      default: // easy
+        // 随机选择一个移动，但给高分移动更多权重
+        possibleMoves.sort((a, b) => b.score - a.score);
+        const weightedMoves = [];
+        possibleMoves.forEach((move, index) => {
+          // 根据移动的排名添加不同数量的副本
+          const copies = Math.max(1, Math.floor((possibleMoves.length - index) / 2));
+          for (let i = 0; i < copies; i++) {
+            weightedMoves.push(move);
+          }
+        });
+        selectedMove = weightedMoves[Math.floor(Math.random() * weightedMoves.length)];
+    }
+
+    if (selectedMove) {
       const newBoard = currentBoardState.map(r => [...r]);
       const piece = newBoard[selectedMove.from.row][selectedMove.from.col];
       
       newBoard[selectedMove.to.row][selectedMove.to.col] = piece;
       newBoard[selectedMove.from.row][selectedMove.from.col] = null;
 
-      // 立即检查是否将军并显示提示
-      const isRedInCheck = isCheck(newBoard, 'red');
-      const isBlackInCheck = isCheck(newBoard, 'black');
+      // 更新棋盘状态
+      setBoard(newBoard);
+      setCurrentPlayer('red');
 
-      if (isRedInCheck) {
+      // 检查是否将军
+      if (isCheck(newBoard, 'red')) {
         soundEffects.playSound('check');
         setShowCheckAlert(true);
         setCheckedSide('red');
@@ -513,37 +549,28 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
           setCheckedSide(null);
         }, 3000);
       }
-      if (isBlackInCheck) {
-        soundEffects.playSound('check');
-        setShowCheckAlert(true);
-        setCheckedSide('black');
-        setTimeout(() => {
-          setShowCheckAlert(false);
-          setCheckedSide(null);
-        }, 3000);
-      }
-
-      // 记录移动历史
-      const newMove = {
-        from: { row: selectedMove.from.row, col: selectedMove.from.col, piece: piece },
-        to: { row: selectedMove.to.row, col: selectedMove.to.col, piece: newBoard[selectedMove.to.row][selectedMove.to.col] }
-      };
-      setMoveHistory(prevHistory => [...prevHistory, newMove]);
-
-      if (newBoard[selectedMove.to.row][selectedMove.to.col]) {
-        soundEffects.playSound('capture');
-      }
-
-      // 检查游戏是否结束
-      if (checkGameOver(newBoard)) {
-        setBoard(newBoard);
-        return;
-      }
-
-      // 更新棋盘状态
-      setBoard(newBoard);
-      setCurrentPlayer('red');
     }
+  };
+
+  // 判断是否在保护重要棋子
+  const isProtectingImportantPiece = (row, col, board) => {
+    const directions = [
+      [-1, 0], [1, 0], [0, -1], [0, 1], // 上下左右
+      [-1, -1], [-1, 1], [1, -1], [1, 1] // 斜向
+    ];
+
+    for (const [dx, dy] of directions) {
+      const newRow = row + dx;
+      const newCol = col + dy;
+      if (newRow >= 0 && newRow < 10 && newCol >= 0 && newCol < 9) {
+        const piece = board[newRow][newCol];
+        if (piece && piece.side === 'black' && 
+            (piece.type === 'jiang' || piece.type === 'che' || piece.type === 'ma')) {
+          return true;
+        }
+      }
+    }
+    return false;
   };
 
   // 修改评分函数，增加更多策略考虑

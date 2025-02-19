@@ -52,11 +52,11 @@ class SoundEffects {
   // 初始化所有音效
   async initSounds() {
     await Promise.all([
-      this.loadSound('capture', '/sounds/capture.mp3'),
-      this.loadSound('check', '/sounds/check.mp3'),
-      this.loadSound('victory', '/sounds/victory.mp3'),
-      this.loadSound('defeat', '/sounds/defeat.mp3'),
-      this.loadSound('bgMusic', '/sounds/background.mp3')
+      this.loadSound('capture', './sounds/capture.mp3'),
+      this.loadSound('check', './sounds/check.mp3'),
+      this.loadSound('victory', './sounds/victory.mp3'),
+      this.loadSound('defeat', './sounds/defeat.mp3'),
+      this.loadSound('bgMusic', './sounds/background.mp3')
     ]);
   }
 }
