@@ -7,10 +7,14 @@
 
 .board {
   border: 2px solid var(--border-color);
-  padding: 10px;
+  padding: 0;
   margin-top: 20px;
   background-color: var(--board-color);
   position: relative;
+  width: 540px; /* 9格x60px */
+  height: 600px; /* 10格x60px */
+  box-sizing: border-box;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
 }
 
 .board::before {
@@ -20,10 +24,41 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: linear-gradient(var(--square-border-color) 1px, transparent 1px),
-                    linear-gradient(90deg, var(--square-border-color) 1px, transparent 1px);
-  background-size: calc(100% / 8) calc(100% / 9);
+  background-image: 
+    /* 横线和竖线 */
+    linear-gradient(var(--square-border-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--square-border-color) 1px, transparent 1px);
+  background-size: 
+    60px 60px,
+    60px 60px;
+  background-position: 0 0, 0 0;
   pointer-events: none;
+}
+
+.board::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  /* 移除九宫格斜线 */
+  background-image: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.board-text {
+  position: absolute;
+  font-size: 24px;
+  font-weight: bold;
+  width: 100%;
+  text-align: center;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--border-color);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .board-row {
@@ -33,10 +68,8 @@
 .square {
   width: 60px;
   height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
+  position: absolute;
+  box-sizing: border-box;
   cursor: pointer;
 }
 
@@ -47,10 +80,16 @@
 .square.valid-move::before {
   content: '';
   position: absolute;
-  width: 12px;
-  height: 12px;
-  background-color: rgba(0, 255, 0, 0.5);
+  width: 16px;
+  height: 16px;
+  background-color: rgba(0, 255, 0, 0.9);
   border-radius: 50%;
+  z-index: 100;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px 2px rgba(0, 255, 0, 0.7);
+  pointer-events: none;
 }
 
 .piece {
@@ -63,12 +102,16 @@
   font-size: 20px;
   cursor: pointer;
   transition: transform 0.2s;
-  position: relative;
-  z-index: 1;
+  position: absolute;
+  z-index: 5;
+  left: 30px;
+  top: 30px;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 .piece:hover {
-  transform: scale(1.1);
+  transform: translate(-50%, -50%) scale(1.1);
 }
 
 .controls {
@@ -281,4 +324,30 @@ button:hover {
   to {
     transform: scale(1);
   }
+}
+
+/* 添加兵卒的活动点标记 */
+.square.soldier-point::before {
+  display: none; /* 隐藏棕色点 */
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: var(--square-border-color);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 添加河界的特殊样式 */
+.river-border {
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  background-color: var(--border-color);
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.3;
+  z-index: 1;
 }

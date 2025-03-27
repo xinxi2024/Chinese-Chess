@@ -116,7 +116,6 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
     const piece = currentBoard[row][col];
     if (!piece) return [];
 
-    console.log(`Getting valid moves for ${piece.type} at [${row}, ${col}]`);
     const moves = [];
     const side = piece.side;
 
@@ -160,13 +159,17 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
           [row + 2, col - 2], [row + 2, col + 2]
         ];
         moves3.forEach(([r, c]) => {
+          // 确保在棋盘范围内
           if (r >= 0 && r < 10 && c >= 0 && c < 9) {
             // 检查象眼是否被塞住
-            const eyeRow = (row + r) / 2;
-            const eyeCol = (col + c) / 2;
+            const eyeRow = Math.floor((row + r) / 2);
+            const eyeCol = Math.floor((col + c) / 2);
+            
+            // 确保象眼没有棋子
             if (!currentBoard[eyeRow][eyeCol]) {
               // 确保不过河
               if ((side === 'red' && r >= 5) || (side === 'black' && r <= 4)) {
+                // 确保目标位置为空或有敌方棋子
                 if (!currentBoard[r][c] || currentBoard[r][c].side !== side) {
                   moves.push([r, c]);
                 }
@@ -185,6 +188,7 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
           [row + 1, col - 2], [row + 1, col + 2]
         ];
         moves4.forEach(([r, c]) => {
+          // 确保在棋盘范围内
           if (r >= 0 && r < 10 && c >= 0 && c < 9) {
             // 检查蹩马腿
             let legRow = row;
@@ -200,7 +204,9 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
             }
             
             // 只有当马腿位置没有棋子时，才能移动
-            if (!currentBoard[legRow][legCol]) {
+            if (legRow >= 0 && legRow < 10 && legCol >= 0 && legCol < 9 && 
+                !currentBoard[legRow][legCol]) {
+              // 确保目标位置为空或有敌方棋子
               if (!currentBoard[r][c] || currentBoard[r][c].side !== side) {
                 moves.push([r, c]);
               }
@@ -259,70 +265,48 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
 
       case 'pao':
         // 炮的移动规则：直线移动，吃子时需要炮台
-        let hasPlat = false;
-        // 向上移动
-        for (let r = row - 1; r >= 0; r--) {
-          if (!currentBoard[r][col]) {
-            if (!hasPlat) moves.push([r, col]);
-          } else {
-            if (!hasPlat) {
-              hasPlat = true;
-            } else {
-              if (currentBoard[r][col].side !== side) {
-                moves.push([r, col]);
+        
+        // 定义四个方向：上、下、左、右
+        const directions = [
+          [-1, 0], // 上
+          [1, 0],  // 下
+          [0, -1], // 左
+          [0, 1]   // 右
+        ];
+        
+        // 遍历四个方向
+        directions.forEach(([dr, dc]) => {
+          let r = row + dr;
+          let c = col + dc;
+          let hasPlat = false;
+          
+          // 沿着当前方向移动
+          while (r >= 0 && r < 10 && c >= 0 && c < 9) {
+            if (!currentBoard[r][c]) {
+              // 如果没有炮台，可以移动到空位置
+              if (!hasPlat) {
+                moves.push([r, c]);
               }
-              break;
-            }
-          }
-        }
-        // 向下移动
-        hasPlat = false;
-        for (let r = row + 1; r < 10; r++) {
-          if (!currentBoard[r][col]) {
-            if (!hasPlat) moves.push([r, col]);
-          } else {
-            if (!hasPlat) {
-              hasPlat = true;
             } else {
-              if (currentBoard[r][col].side !== side) {
-                moves.push([r, col]);
+              // 找到了一个棋子
+              if (!hasPlat) {
+                // 第一个棋子作为炮台
+                hasPlat = true;
+              } else {
+                // 第二个棋子，如果是敌方的，可以吃
+                if (currentBoard[r][c].side !== side) {
+                  moves.push([r, c]);
+                }
+                // 不管是敌方还是己方，找到第二个棋子后就停止这个方向的搜索
+                break;
               }
-              break;
             }
+            
+            // 继续沿着当前方向移动
+            r += dr;
+            c += dc;
           }
-        }
-        // 向左移动
-        hasPlat = false;
-        for (let c = col - 1; c >= 0; c--) {
-          if (!currentBoard[row][c]) {
-            if (!hasPlat) moves.push([row, c]);
-          } else {
-            if (!hasPlat) {
-              hasPlat = true;
-            } else {
-              if (currentBoard[row][c].side !== side) {
-                moves.push([row, c]);
-              }
-              break;
-            }
-          }
-        }
-        // 向右移动
-        hasPlat = false;
-        for (let c = col + 1; c < 9; c++) {
-          if (!currentBoard[row][c]) {
-            if (!hasPlat) moves.push([row, c]);
-          } else {
-            if (!hasPlat) {
-              hasPlat = true;
-            } else {
-              if (currentBoard[row][c].side !== side) {
-                moves.push([row, c]);
-              }
-              break;
-            }
-          }
-        }
+        });
         break;
 
       case 'bing':
@@ -375,19 +359,7 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
         break;
     }
 
-    console.log(`Valid moves:`, moves);
     return moves;
-  };
-
-  // 验证移动是否合法
-  const isValidMove = (piece, fromRow, fromCol, toRow, toCol) => {
-    if (!piece) return false;
-
-    // 获取所有有效移动
-    const validMoves = getValidMoves(fromRow, fromCol);
-
-    // 检查目标位置是否在有效移动列表中
-    return validMoves.some(([r, c]) => r === toRow && c === toCol);
   };
 
   // 处理翻棋
@@ -735,11 +707,10 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
     }
   };
 
-  // 修改 handlePieceClick 函数，在玩家移动后触发 AI 移动
+  // 处理棋子点击，选择棋子并显示有效移动位置
   const handlePieceClick = (row, col) => {
     // 如果是 AI 回合，不允许玩家移动
     if (gameMode === 'pve' && currentPlayer === 'black') {
-      console.log('AI 回合，玩家不能移动');
       return;
     }
 
@@ -762,7 +733,9 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
       }
 
       // 如果是有效移动位置
-      if (isValidMove(fromPiece, selectedPiece.row, selectedPiece.col, row, col)) {
+      const isValidMovePos = validMoves.some(([r, c]) => r === row && c === col);
+      
+      if (isValidMovePos) {
         const newBoard = board.map(r => [...r]);
         
         // 执行移动
@@ -778,6 +751,8 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
 
         if (board[row][col]) {
           soundEffects.playSound('capture');
+        } else {
+          soundEffects.playSound('move');
         }
 
         // 检查游戏是否结束
@@ -790,6 +765,17 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
         setBoard(newBoard);
         setSelectedPiece(null);
         setValidMoves([]);
+
+        // 检查是否将军
+        if (isCheck(newBoard, currentPlayer === 'red' ? 'black' : 'red')) {
+          soundEffects.playSound('check');
+          setShowCheckAlert(true);
+          setCheckedSide(currentPlayer === 'red' ? 'black' : 'red');
+          setTimeout(() => {
+            setShowCheckAlert(false);
+            setCheckedSide(null);
+          }, 2000);
+        }
 
         // 如果是人机模式
         if (gameMode === 'pve') {
@@ -804,9 +790,18 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
     } else {
       // 选择新棋子
       if (piece && piece.side === currentPlayer) {
-        setSelectedPiece({ row, col });
-        const moves = getValidMoves(row, col);
-        setValidMoves(moves);
+        // 清除上一次的选择
+        setSelectedPiece(null);
+        setValidMoves([]);
+        
+        // 先强制刷新一下UI
+        setTimeout(() => {
+          // 然后设置新的选择和有效移动
+          setSelectedPiece({ row, col });
+          const moves = getValidMoves(row, col);
+          setValidMoves(moves);
+          soundEffects.playSound('select');
+        }, 0);
       }
     }
   };
@@ -904,7 +899,8 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
       for (let j = 0; j < 9; j++) {
         const piece = board[i][j];
         if (piece && piece.side === oppositeSide) {
-          if (isValidMove(piece, i, j, jiangRow, jiangCol)) {
+          const validMoves = getValidMoves(i, j, board);
+          if (validMoves.some(([r, c]) => r === jiangRow && c === jiangCol)) {
             return true;
           }
         }
@@ -983,14 +979,32 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
     const isSelected = selectedPiece && selectedPiece.row === row && selectedPiece.col === col;
     const isValidMove = validMoves.some(([r, c]) => r === row && c === col);
     const isInCheck = piece && piece.type === 'jiang' && isCheck(board, piece.side);
+    
+    // 判断是否是兵卒的活动点
+    const isSoldierPoint = (
+      // 红方兵卒活动点
+      ((row === 5 || row === 7) && (col === 0 || col === 2 || col === 4 || col === 6 || col === 8)) ||
+      // 黑方兵卒活动点
+      ((row === 2 || row === 4) && (col === 0 || col === 2 || col === 4 || col === 6 || col === 8))
+    );
+
+    // 计算在网格线交叉点的位置
+    const offsetX = col * 60;
+    const offsetY = row * 60;
 
     return (
       <div 
-        className={`square ${isSelected ? 'selected' : ''} ${isValidMove ? 'valid-move' : ''}`}
+        className={`square ${isSelected ? 'selected' : ''} ${isValidMove ? 'valid-move' : ''} ${isSoldierPoint ? 'soldier-point' : ''}`}
         key={`${row}-${col}`}
         onClick={() => handlePieceClick(row, col)}
         onDrop={(e) => handleDrop(e, row, col)}
         onDragOver={handleDragOver}
+        data-row={row}
+        data-col={col}
+        style={{ 
+          left: `${offsetX}px`, 
+          top: `${offsetY}px` 
+        }}
       >
         {piece && (
           <div 
@@ -1016,13 +1030,18 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
 
   // 渲染棋盘函数
   const renderBoard = () => {
+    const squares = [];
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 9; col++) {
+        squares.push(renderSquare(row, col));
+      }
+    }
+    
     return (
       <div className="board">
-        {board.map((row, rowIndex) => (
-          <div key={rowIndex} className="board-row">
-            {row.map((_, colIndex) => renderSquare(rowIndex, colIndex))}
-          </div>
-        ))}
+        {squares}
+        <div className="board-text">楚河        汉界</div>
+        <div className="river-border"></div>
       </div>
     );
   };
@@ -1113,6 +1132,11 @@ const ChessBoard = ({ gameMode: initialGameMode, theme: initialTheme, difficulty
       {side === 'red' ? '红方' : '黑方'}被将军！
     </div>
   );
+
+  // 监听validMoves变化，确保UI更新
+  React.useEffect(() => {
+    // 仅用于触发重新渲染
+  }, [validMoves]);
 
   // 在组件挂载时初始化音效和背景音乐
   React.useEffect(() => {
